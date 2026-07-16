@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Physics Module Command Reference</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#f7f7f4; --fg:#1c1d20; --panel:#fff; --line:#cfd4d9; --muted:#5d6470; --accent:#15616d; }
+    @media (prefers-color-scheme:dark) { :root { --bg:#15171a; --fg:#eceff3; --panel:#1f2328; --line:#343a42; --muted:#aab2bd; --accent:#4fb3bf; } }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { max-width:1200px; margin:auto; padding:34px 22px 56px; }
+    h1 { margin:0 0 8px; font-size:clamp(2rem,5vw,3.2rem); }
+    .summary { color:var(--muted); margin-bottom:24px; }
+    input { width:100%; max-width:520px; margin:0 0 18px; padding:10px 12px; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--fg); }
+    table { width:100%; border-collapse:collapse; background:var(--panel); }
+    th,td { padding:10px 12px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:color-mix(in srgb,var(--accent),transparent 86%); }
+    th:first-child { width:24%; } th:nth-child(2) { width:31%; }
+    code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+    footer { margin-top:20px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Physics Module</h1>
+    <p class="summary">Command reference generated from <code>src/main.cpp</code>. Arguments are shown in the order consumed by the module interpreter.</p>
+    <label for="filter">Filter commands</label><br>
+    <input id="filter" type="search" placeholder="Type a command, argument, or description">
+    <table>
+      <thead><tr><th>Command</th><th>Arguments</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>Init</code></td><td><code>File: string</code></td><td>Initializes the module and loads its default plugin.</td></tr>
+        <tr><td><code>Debug</code></td><td><code>Value: string</code></td><td>Enables or disables diagnostic logging for the module and active plugin.</td></tr>
+        <tr><td><code>Set_Paths</code></td><td><code>Resources_Path: value</code></td><td>Sets the root Appeal resources path used by the module.</td></tr>
+        <tr><td><code>Add_Plugin</code></td><td><code>Name: string, File: string</code></td><td>Requests the module to add plugin.</td></tr>
+        <tr><td><code>Remove_Plugin</code></td><td><code>Name: string</code></td><td>Requests the module to remove plugin.</td></tr>
+        <tr><td><code>Load_Plugin</code></td><td><code>Name: string</code></td><td>Requests the module to load plugin.</td></tr>
+        <tr><td><code>Unload_Plugin</code></td><td><code>Name: string</code></td><td>Requests the module to unload plugin.</td></tr>
+        <tr><td><code>Set_Plugin_Wanted</code></td><td><code>Name: string, Wanted: int</code></td><td>Requests the module to set plugin wanted.</td></tr>
+        <tr><td><code>Apply_Load_Plan</code></td><td><code>none</code></td><td>Applies the currently configured plugin loading plan.</td></tr>
+        <tr><td><code>Set_Load_Mode</code></td><td><code>Load_Mode: value</code></td><td>Requests the module to set load mode.</td></tr>
+        <tr><td><code>List_Plugins</code></td><td><code>none</code></td><td>Lists the plugins currently known to the module.</td></tr>
+        <tr><td><code>Use</code></td><td><code>Entity: string, Plugin_Name: string</code></td><td>Requests the module to use.</td></tr>
+        <tr><td><code>Attach</code></td><td><code>Entity: string, Plugin_Name: string</code></td><td>Requests the module to attach. Alias of Use.</td></tr>
+        <tr><td><code>Release</code></td><td><code>Entity: string</code></td><td>Requests the module to release.</td></tr>
+        <tr><td><code>Detach</code></td><td><code>Entity: string</code></td><td>Requests the module to detach. Alias of Release.</td></tr>
+        <tr><td><code>Update</code></td><td><code>Entity: string</code></td><td>Advances or refreshes the module state for the current update cycle.</td></tr>
+        <tr><td><code>Set</code></td><td><code>Entity: string, Key: string, Value: string</code></td><td>Requests the module to set.</td></tr>
+        <tr><td><code>Set_Body_Type</code></td><td><code>Entity: string, Type: string</code></td><td>Requests the module to set body type.</td></tr>
+        <tr><td><code>Set_Position</code></td><td><code>Entity: string, X: float, Y: float, Z: float</code></td><td>Requests the module to set position.</td></tr>
+        <tr><td><code>Set_Velocity</code></td><td><code>Entity: string, X: float, Y: float, Z: float</code></td><td>Requests the module to set velocity. Alias of Set_Position.</td></tr>
+        <tr><td><code>Apply_Force</code></td><td><code>Entity: string, X: float, Y: float, Z: float</code></td><td>Requests the module to apply force. Alias of Set_Position.</td></tr>
+        <tr><td><code>Apply_Impulse</code></td><td><code>Entity: string, X: float, Y: float, Z: float</code></td><td>Requests the module to apply impulse. Alias of Set_Position.</td></tr>
+        <tr><td><code>Set_Gravity</code></td><td><code>X: float, Y: float, Z: float</code></td><td>Requests the module to set gravity.</td></tr>
+      </tbody>
+    </table>
+    <footer>23 commands documented.</footer>
+  </main>
+  <script>
+    const filter = document.getElementById('filter');
+    const rows = [...document.querySelectorAll('tbody tr')];
+    filter.addEventListener('input', () => {
+      const query = filter.value.toLowerCase();
+      rows.forEach(row => row.hidden = !row.textContent.toLowerCase().includes(query));
+    });
+  </script>
+</body>
+</html>
