@@ -5,11 +5,23 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <stdexcept>
+#include <set>
 
 namespace
 {
     struct Physics_Functions
     {
+        void (*Set_Box_3D)(std::string,float,float,float) = nullptr;
+        void (*Set_Sphere)(std::string,float) = nullptr;
+        void (*Step)(float) = nullptr;
+        void (*Set_Units_Per_Meter)(float) = nullptr;
+        void (*Set_Box)(std::string,float,float) = nullptr;
+        void (*Set_Circle)(std::string,float) = nullptr;
+        void (*Set_Capsule)(std::string,float,float) = nullptr;
+        std::string (*Get)(std::string,std::string) = nullptr;
+        std::string (*Contact)(std::string,int,std::string) = nullptr;
+        std::string (*Event)(std::string,int,std::string) = nullptr;
         void (*Debug)(bool Enable) = nullptr;
         void (*Set_Paths)(std::string Resources) = nullptr;
         void (*Attach)(std::string Entity) = nullptr;
@@ -74,6 +86,16 @@ namespace
 
         Slot.Loaded_Plugin = std::make_unique<Plugin>();
         Slot.Loaded_Plugin->Load(Slot.File);
+        Assign(Slot, "Set_Box_3D", Slot.Functions.Set_Box_3D);
+        Assign(Slot, "Set_Sphere", Slot.Functions.Set_Sphere);
+        Assign(Slot, "Step", Slot.Functions.Step);
+        Assign(Slot, "Set_Units_Per_Meter", Slot.Functions.Set_Units_Per_Meter);
+        Assign(Slot, "Set_Box", Slot.Functions.Set_Box);
+        Assign(Slot, "Set_Circle", Slot.Functions.Set_Circle);
+        Assign(Slot, "Set_Capsule", Slot.Functions.Set_Capsule);
+        Assign(Slot, "Get", Slot.Functions.Get);
+        Assign(Slot, "Contact", Slot.Functions.Contact);
+        Assign(Slot, "Event", Slot.Functions.Event);
         Assign(Slot, "Debug", Slot.Functions.Debug);
         Assign(Slot, "Set_Paths", Slot.Functions.Set_Paths);
         Assign(Slot, "Attach", Slot.Functions.Attach);
@@ -191,6 +213,8 @@ extern "C" void Interpreter(Data_Source *Data)
         if(Slot != nullptr)
         {
             Unload_Slot(*Slot, true);
+            for(auto i=Entity_Bodies.begin();i!=Entity_Bodies.end();)
+                if(i->second==Name) i=Entity_Bodies.erase(i); else ++i;
             Plugins.erase(Name);
         }
     }
@@ -294,10 +318,13 @@ extern "C" void Interpreter(Data_Source *Data)
         *Data >> Entity;
         if(Entity == "All")
         {
+            std::set<std::string> Stepped;
             for(const auto &Pair : Entity_Bodies)
             {
                 Plugin_Slot *Slot = Find_Slot(Pair.second);
-                if(Slot != nullptr && Slot->Functions.Update != nullptr) Slot->Functions.Update(Pair.first);
+                if(Slot && Slot->Functions.Step) {
+                    if(Stepped.insert(Pair.second).second) Slot->Functions.Step(1.0f/60);
+                } else if(Slot && Slot->Functions.Update) Slot->Functions.Update(Pair.first);
             }
         }
         else
@@ -305,6 +332,56 @@ extern "C" void Interpreter(Data_Source *Data)
             Plugin_Slot *Slot = Entity_Slot(Entity);
             if(Slot != nullptr && Slot->Functions.Update != nullptr) Slot->Functions.Update(Entity);
         }
+    }
+    else if(Command == "Step" || Command == "Set_Units_Per_Meter")
+    {
+        float Value; *Data >> Value;
+        for(auto &Pair : Plugins) if(Pair.second.Is_Loaded) {
+            auto Fn=Command=="Step"?Pair.second.Functions.Step:Pair.second.Functions.Set_Units_Per_Meter;
+            if(!Fn) throw std::runtime_error("Physics plugin does not support "+Command+": "+Pair.first);
+            Fn(Value);
+        }
+    }
+    else if(Command == "Get" || Command == "Contact" || Command == "Event" || Command == "Touching")
+    {
+        std::string Entity,Field; int Index=0; *Data >> Entity;
+        auto* Slot=Entity_Slot(Entity);
+        if(!Slot || !Slot->Functions.Get) throw std::runtime_error("Physics query requires an attached collision-capable body: "+Entity);
+        auto& F=Slot->Functions;
+        if(Command=="Get") { *Data >> Field; Data->Return_Value(F.Get(Entity,Field)); }
+        else if(Command=="Touching") {
+            *Data >> Field; if(!F.Contact) throw std::runtime_error("Physics Contact unsupported");
+            int Count=std::stoi(F.Get(Entity,"Contact_Count")); bool Found=false;
+            for(int i=0;i<Count;++i) if(F.Contact(Entity,i,"Other")==Field) Found=true;
+            Data->Return_Value(Found?"1":"0");
+        } else {
+            *Data >> Index; *Data >> Field;
+            auto Fn=Command=="Contact"?F.Contact:F.Event;
+            if(!Fn) throw std::runtime_error("Physics query unsupported: "+Command);
+            Data->Return_Value(Fn(Entity,Index,Field));
+        }
+    }
+    else if(Command == "Set_Box_3D" || Command == "Set_Sphere")
+    {
+        std::string Entity; float X,Y=0,Z=0; *Data >> Entity; *Data >> X;
+        if(Command=="Set_Box_3D") { *Data >> Y; *Data >> Z; }
+        auto* Slot=Entity_Slot(Entity);
+        if(!Slot) throw std::runtime_error("Physics body not attached: "+Entity);
+        if(Command=="Set_Box_3D" && Slot->Functions.Set_Box_3D) Slot->Functions.Set_Box_3D(Entity,X,Y,Z);
+        else if(Command=="Set_Sphere" && Slot->Functions.Set_Sphere) Slot->Functions.Set_Sphere(Entity,X);
+        else throw std::runtime_error("Physics plugin does not support "+Command);
+    }
+    else if(Command == "Set_Box" || Command == "Set_Capsule" || Command == "Set_Circle")
+    {
+        std::string Entity; float X,Y=0; *Data >> Entity; *Data >> X;
+        if(Command!="Set_Circle") *Data >> Y;
+        auto* Slot=Entity_Slot(Entity);
+        if(!Slot) throw std::runtime_error("Physics body not attached: "+Entity);
+        auto& F=Slot->Functions;
+        if(Command=="Set_Circle" && F.Set_Circle) F.Set_Circle(Entity,X);
+        else if(Command=="Set_Box" && F.Set_Box) F.Set_Box(Entity,X,Y);
+        else if(Command=="Set_Capsule" && F.Set_Capsule) F.Set_Capsule(Entity,X,Y);
+        else throw std::runtime_error("Physics plugin does not support "+Command);
     }
     else if(Command == "Set")
     {
@@ -351,4 +428,10 @@ extern "C" void Interpreter(Data_Source *Data)
     {
         if(Module_Debug) std::cout << "\tError: " << Command << " not found in Physics Dictionary" << std::endl;
     }
+}
+
+extern "C" void Shutdown()
+{
+    Entity_Bodies.clear();
+    Plugins.clear();
 }

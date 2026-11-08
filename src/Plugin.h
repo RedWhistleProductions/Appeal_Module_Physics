@@ -18,6 +18,9 @@
 
     public:
 
+        Plugin() = default;
+        Plugin(const Plugin&) = delete;
+        Plugin &operator=(const Plugin&) = delete;
         void Load(std::string File);
         void Unload();
         template<typename T>void Assign(std::string Key, T &func);
@@ -28,18 +31,21 @@
     template<typename T>
     void Plugin::Assign(std::string Key, T &func)
     {
+        func = nullptr;
+        if(!handle) return;
+        dlerror();
         void *Value = dlsym(handle, Key.c_str());
-        if ((error = dlerror()) != NULL)  
+        if ((error = dlerror()) != NULL)
         {
-            std::cout << "Error: " << Key << " not found" << std::endl;
-        } 
+            // Optional capabilities remain null when not exported.
+        }
         else
         {
-            func = reinterpret_cast<decltype(func)>(Value);
+            func = reinterpret_cast<T>(Value);
         }
     }
 
-    
+
 #endif
 
 #ifdef __MINGW32__
@@ -55,6 +61,9 @@ class Plugin
     void (*Destructor)() = nullptr;
 
     public:
+    Plugin() = default;
+    Plugin(const Plugin&) = delete;
+    Plugin &operator=(const Plugin&) = delete;
     void Load(std::string File);
     void Unload();
     template<typename T>

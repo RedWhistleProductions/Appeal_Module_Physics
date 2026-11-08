@@ -12,5 +12,7 @@ class Data_Source
     void operator >>(float &Data);
     void operator >>(double &Data);
     void operator >>(bool &Data);
+    virtual void Return_Value(std::string Value) {}
+    virtual bool End_Of_Source() const { return false; }
 };
 

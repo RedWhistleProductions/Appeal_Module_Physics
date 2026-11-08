@@ -18,3 +18,7 @@ dist/
 .DS_Store
 Thumbs.db
 
+
+/Appeal_Box2D_Physics/
+
+/Appeal_Jolt_Physics/
